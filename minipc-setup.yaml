@@ -1,0 +1,45 @@
+#
+# Configure minipc.
+# Assumptions:
+# - ssh access
+# - disk partitioned (200MB on EFI, 50 GB on /, rest on /home, 4096 MB on SWAP)
+#
+- hosts: "{{ target }}"
+  tasks:
+
+    - name: Make sure OS is up to date
+      apt: 
+        update_cache: yes
+        upgrade: full
+      become: true
+
+    - name: Make sure all application are installed
+      apt:
+        name: "{{ item }}"
+      loop: "{{ packages }}"
+      become: true
+
+    - name: Find out which packages are installed
+      package_facts:
+
+    - name: Make sure Google Chrome is installed
+      apt: 
+        deb: https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
+      become: true
+      when: not "google-chrome-stable" in ansible_facts.packages
+
+    - name: Make sure all users are in place
+      user:
+        name: "{{ item }}"
+        state: present
+        # TODO: password gets set on next login?
+      loop: "{{ users }}"
+      become: true
+
+    - name: Make sure text size is bigger
+      dconf:
+        key: "/org/gnome/desktop/interface/text-scaling-factor"
+        value: "1.25"
+      become_user: "{{ item }}"
+      become: true
+      loop: "{{ users }}"
