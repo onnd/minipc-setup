@@ -13,10 +13,17 @@
         upgrade: full
       become: true
 
-    - name: Make sure all application are installed
+    - name: Make sure all applications are installed
       apt:
         name: "{{ item }}"
-      loop: "{{ packages }}"
+      loop:
+        - mpv
+        - net-tools
+        # Needed by package_facts Ansible module
+        - python3-apt
+        # Needed by dconf Ansible module
+        - python3-psutil
+        - vim
       become: true
 
     - name: Find out which packages are installed
@@ -43,3 +50,27 @@
       become_user: "{{ item }}"
       become: true
       loop: "{{ users }}"
+
+    - name: Make sure screensaver is disabled
+      dconf:
+        key: "/org/gnome/desktop/session/idle-delay"
+        value: "0"
+      become_user: "{{ item }}"
+      become: true
+      loop: "{{ users }}"
+
+    - name: Make sure lock-screen is disabled
+      dconf:
+        key: "/org/gnome/desktop/screensaver/lock-enabled"
+        value: "false"
+      become_user: "{{ item }}"
+      become: true
+      loop: "{{ users }}"
+
+    - name: Make sure /etc/hosts is correctly set up
+      lineinfile:
+        path: /etc/hosts
+        line: "{{ item.ip }} {{ item.name }}"
+        regexp: '^{{ item.ip }}.*{{ item.name }}$'
+      loop: "{{ hostsfile }}"
+      become: true
