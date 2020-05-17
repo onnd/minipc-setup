@@ -5,8 +5,19 @@
 # - disk partitioned (200MB on EFI, 50 GB on /, rest on /home, 4096 MB on SWAP)
 #
 - hosts: "{{ target }}"
-  tasks:
+  vars:
+    dconf_settings:
+      - key: "/org/gnome/desktop/interface/text-scaling-factor"
+        value: "1.25"
+        comment: "Make sure text size is bigger"
+      - key: "/org/gnome/desktop/session/idle-delay"
+        value: "3600"
+        comment: "Make sure screensaver is disabled"
+      - key: "/org/gnome/desktop/screensaver/lock-enabled"
+        value: "false"
+        comment: "Make sure lockscreen is disabled"
 
+  tasks:
     - name: Make sure OS is up to date
       apt: 
         update_cache: yes
@@ -37,35 +48,29 @@
 
     - name: Make sure all users are in place
       user:
-        name: "{{ item }}"
+        name: "{{ item.name }}"
+        comment: "{{ item.gecos }}"
+        shell: "/bin/bash"
         state: present
-        # TODO: password gets set on next login?
       loop: "{{ users }}"
+      become: true
+      register: changes
+
+    - name: Make sure newly created users get asked to set password on logon
+      command: "passwd -de {{ item.item.name }}"
+      loop: "{{ changes.results }}"
+      when: item.changed
       become: true
 
-    - name: Make sure text size is bigger
+    - name: "Make sure gnome is configured for all users"
       dconf:
-        key: "/org/gnome/desktop/interface/text-scaling-factor"
-        value: "1.25"
-      become_user: "{{ item }}"
+        key: "{{ item.1.key }}"
+        value: "{{ item.1.value }}"
+      become_user: "{{ item.0.name }}"
       become: true
-      loop: "{{ users }}"
-
-    - name: Make sure screensaver is disabled
-      dconf:
-        key: "/org/gnome/desktop/session/idle-delay"
-        value: "0"
-      become_user: "{{ item }}"
-      become: true
-      loop: "{{ users }}"
-
-    - name: Make sure lock-screen is disabled
-      dconf:
-        key: "/org/gnome/desktop/screensaver/lock-enabled"
-        value: "false"
-      become_user: "{{ item }}"
-      become: true
-      loop: "{{ users }}"
+      loop: "{{ users|product(dconf_settings)|list }}"
+      loop_control:
+        label: "For user {{ item.0.name }}: {{ item.1.comment }}"
 
     - name: Make sure /etc/hosts is correctly set up
       lineinfile:
