@@ -1,8 +1,25 @@
 #
 # Configure minipc.
 # Assumptions:
-# - ssh access
+# - ssh access with permissions to sudo to root
 # - disk partitioned (200MB on EFI, 50 GB on /, rest on /home, 4096 MB on SWAP)
+#
+# An inventory which looks like this:
+# target-host:
+#   hostsfile:
+#     - name: printer
+#       ip: 192.168.0.2
+#     - name: other-server
+#       ip: 192.168.0.3
+#       ...
+#   users:
+#     - name: alice
+#       gecos: "Alice,,,"
+#       groups:
+#         - ssh-access
+#     - name: bob
+#       gecos: "Bob,,,"
+#       groups: ""
 #
 - hosts: "{{ target }}"
   vars:
@@ -67,6 +84,14 @@
       when: sshd_update.changed
       become: true
 
+    - name: Check which users already exists
+      getent:
+        database: passwd
+        key: "{{ item.name }}"
+      register: users_check
+      ignore_errors: true
+      loop: "{{ users }}"
+
     - name: Make sure all users are in place
       user:
         name: "{{ item.name }}"
@@ -77,12 +102,13 @@
         groups: "{{ item.groups }}"
       loop: "{{ users }}"
       become: true
-      register: changes
 
     - name: Make sure newly created users get asked to set password on logon
       command: "passwd -de {{ item.item.name }}"
-      loop: "{{ changes.results }}"
-      when: item.changed
+      loop: "{{ users_check.results }}"
+      loop_control:
+        label: "{{ item.item.name }}"
+      when: item.failed
       become: true
 
     - name: "Make sure gnome is configured for all users"
