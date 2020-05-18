@@ -11,7 +11,7 @@
         value: "1.25"
         comment: "Make sure text size is bigger"
       - key: "/org/gnome/desktop/session/idle-delay"
-        value: "3600"
+        value: "uint32 0"
         comment: "Make sure screensaver is disabled"
       - key: "/org/gnome/desktop/screensaver/lock-enabled"
         value: "false"
@@ -28,6 +28,7 @@
       apt:
         name: "{{ item }}"
       loop:
+        - mlocate
         - mpv
         - net-tools
         # Needed by package_facts Ansible module
@@ -46,12 +47,34 @@
       become: true
       when: not "google-chrome-stable" in ansible_facts.packages
 
+    - name: Make sure all groups are in place
+      group:
+        name: "ssh-access"
+      become: true
+
+    - name: Limit ssh access to users in ssh-access group
+      lineinfile:
+        path: /etc/ssh/sshd_config
+        line: AllowGroups ssh-access
+        regexp: '^AllowGroups .*$'
+      become: true
+      register: sshd_update
+
+    - name: Restart sshd
+      service:
+        name: sshd
+        state: restarted
+      when: sshd_update.changed
+      become: true
+
     - name: Make sure all users are in place
       user:
         name: "{{ item.name }}"
         comment: "{{ item.gecos }}"
         shell: "/bin/bash"
         state: present
+        append: true
+        groups: "{{ item.groups }}"
       loop: "{{ users }}"
       become: true
       register: changes
