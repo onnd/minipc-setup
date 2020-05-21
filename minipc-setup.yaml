@@ -12,6 +12,8 @@
 #     - name: other-server
 #       ip: 192.168.0.3
 #       ...
+#   rclone_config: |
+#     <rclone config file here>
 #   users:
 #     - name: alice
 #       gecos: "Alice,,,"
@@ -52,6 +54,7 @@
         - python3-apt
         # Needed by dconf Ansible module
         - python3-psutil
+        - rclone
         - vim
       become: true
 
@@ -128,3 +131,29 @@
         regexp: '^{{ item.ip }}.*{{ item.name }}$'
       loop: "{{ hostsfile }}"
       become: true
+
+    - name: Make sure rclone configuration is in place
+      copy:
+        content: "{{ rclone_config }}"
+        dest: "/home/{{ ansible_user_id }}/.config/rclone/rclone.conf"
+        mode: 0600
+
+    - name: Make sure Program directory exists
+      file:
+        path: "/home/{{ ansible_user_id }}/Program"
+        mode: 0755
+        state: directory
+
+    - name: Make sure rclone script is in place
+      copy:
+        src: backup-rclone.sh
+        dest: "/home/{{ ansible_user_id }}/Program/backup-rclone.sh"
+        mode: 0755
+
+    - name: Ensure backup cron job is set up
+      cron:
+        name: backup-rclone
+        user: "{{ ansible_user_id }}"
+        minute: "55"
+        hour: "23"
+        job: "/home/{{ ansible_user_id }}/Program/backup-rclone.sh 1> /tmp/backup.log 2> /tmp/backup.err"
