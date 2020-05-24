@@ -24,18 +24,6 @@
 #       groups: ""
 #
 - hosts: "{{ target }}"
-  vars:
-    dconf_settings:
-      - key: "/org/gnome/desktop/interface/text-scaling-factor"
-        value: "1.25"
-        comment: "Make sure text size is bigger"
-      - key: "/org/gnome/desktop/session/idle-delay"
-        value: "uint32 0"
-        comment: "Make sure screensaver is disabled"
-      - key: "/org/gnome/desktop/screensaver/lock-enabled"
-        value: "false"
-        comment: "Make sure lockscreen is disabled"
-
   tasks:
     - name: Make sure OS is up to date
       apt: 
@@ -43,19 +31,19 @@
         upgrade: full
       become: true
 
-    - name: Make sure all applications are installed
+    - name: Make sure all required applications are installed
       apt:
-        name: "{{ item }}"
-      loop:
-        - mlocate
-        - mpv
-        - net-tools
-        # Needed by package_facts Ansible module
-        - python3-apt
-        # Needed by dconf Ansible module
-        - python3-psutil
-        - rclone
-        - vim
+        name:
+          - mlocate
+          - mpv
+          - net-tools
+          # Needed by package_facts Ansible module
+          - python3-apt
+          # Needed by dconf Ansible module
+          - python3-psutil
+          - rclone
+          - samba
+          - vim
       become: true
 
     - name: Find out which packages are installed
@@ -87,7 +75,7 @@
       when: sshd_update.changed
       become: true
 
-    - name: Check which users already exists
+    - name: Check which users already exist
       getent:
         database: passwd
         key: "{{ item.name }}"
@@ -114,7 +102,7 @@
       when: item.failed
       become: true
 
-    - name: "Make sure gnome is configured for all users"
+    - name: Make sure gnome is configured for all users
       dconf:
         key: "{{ item.1.key }}"
         value: "{{ item.1.value }}"
@@ -123,6 +111,17 @@
       loop: "{{ users|product(dconf_settings)|list }}"
       loop_control:
         label: "For user {{ item.0.name }}: {{ item.1.comment }}"
+      vars:
+        dconf_settings:
+        - key: "/org/gnome/desktop/interface/text-scaling-factor"
+          value: "1.25"
+          comment: "Make sure text size is bigger"
+        - key: "/org/gnome/desktop/session/idle-delay"
+          value: "uint32 0"
+          comment: "Make sure screensaver is disabled"
+        - key: "/org/gnome/desktop/screensaver/lock-enabled"
+          value: "false"
+          comment: "Make sure lockscreen is disabled" 
 
     - name: Make sure /etc/hosts is correctly set up
       lineinfile:
@@ -144,11 +143,28 @@
         mode: 0755
         state: directory
 
-    - name: Make sure rclone script is in place
+    - name: Make sure user owned files are copied in place
       copy:
-        src: backup-rclone.sh
-        dest: "/home/{{ ansible_user_id }}/Program/backup-rclone.sh"
-        mode: 0755
+        src: "{{ item.src }}"
+        dest: "{{ item.dest }}"
+        mode: "{{ item.mode }}"
+      loop:
+        - src: backup-rclone.sh
+          dest: "/home/{{ ansible_user_id }}/Program/backup-rclone.sh"
+          mode: "0755"
+
+    - name: Make sure system files are copied in place
+      copy:
+        src: "{{ item.src }}"
+        dest: "{{ item.dest }}"
+        mode: "{{ item.mode }}"
+      become: true
+      loop:
+        - src: smbusers
+          dest: /etc/samba/smbusers
+          mode: 0644
+          owner: root
+          group: root
 
     - name: Ensure backup cron job is set up
       cron:
@@ -157,3 +173,66 @@
         minute: "55"
         hour: "23"
         job: "/home/{{ ansible_user_id }}/Program/backup-rclone.sh 1> /tmp/backup.log 2> /tmp/backup.err"
+
+    - name: Set up music symlinks
+      file:
+        path: "{{ item.path }}"
+        src: "{{ item.src }}"
+        state: link
+      loop:
+        - path: "/home/{{ ansible_user_id }}/Musik"
+          src: "/home/{{ ansible_user_id }}/Backups/current/Music"
+        - path: "/home/{{ ansible_user_id }}/Julmusik"
+          src: "/home/{{ ansible_user_id }}/Backups/current/Documents/Julmusik"
+
+    - name: Ensure samba shares are set up
+      ini_file:
+        path: /etc/samba/smb.conf
+        section: "{{ item.section }}"
+        option: "{{ item.option }}"
+        value: "{{ item.value }}"
+        create: no
+      become: true
+      loop: # Should be some better way...
+        - section: "global"
+          option: "username map"
+          value: "/etc/samba/smbusers"
+        # nuc
+        - section: "nuc"
+          option: "comment"
+          value: "NUC public SMB share"
+        - section: "nuc"
+          option: "path"
+          value: "/home/anton/Public"
+        - section: "nuc"
+          option: "read only"
+          value: "no"
+        - section: "nuc"
+          option: "guest ok"
+          value: "yes"
+        # music
+        - section: "music"
+          option: "comment"
+          value: "NUC public music share"
+        - section: "music"
+          option: "path"
+          value: "/home/anton/Backups/current/Music"
+        - section: "music"
+          option: "read only"
+          value: "yes"
+        - section: "music"
+          option: "guest ok"
+          value: "yes"
+        # julmusik
+        - section: "julmusik"
+          option: "comment"
+          value: "NUC public Christmas music share"
+        - section: "julmusik"
+          option: "path"
+          value: "/home/anton/Backups/current/Documents/Julmusik"
+        - section: "julmusik"
+          option: "read only"
+          value: "yes"
+        - section: "julmusik"
+          option: "guest ok"
+          value: "yes"
