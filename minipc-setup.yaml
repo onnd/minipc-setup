@@ -25,6 +25,12 @@
 #       gecos: "Bob,,,"
 #       groups: ""
 #
+# Run the playbook like this:
+# ansible-playbook minipc-setup.yaml -e target=<hostname> -K
+#
+# It's probably a good idea to reboot afterwards.
+#
+
 - hosts: "{{ target }}"
   tasks:
     - name: Make sure OS is up to date
@@ -73,11 +79,24 @@
       become: true
       register: sshd_update
 
+    - name: Kernel setting for Kingston SSD disk compatibility
+      lineinfile:
+        path: /etc/default/grub
+        line: 'GRUB_CMDLINE_LINUX_DEFAULT="quiet splash nvme_core.default_ps_max_latency_us=0"'
+        regexp: '^GRUB_CMDLINE_LINUX_DEFAULT=.*$'
+      become: true
+      register: grub_update
+
     - name: Restart sshd
       service:
         name: sshd
         state: restarted
       when: sshd_update.changed
+      become: true
+
+    - name: run update-grub
+      command: update-grub
+      when: grub_update.changed
       become: true
 
     - name: Check which users already exist
