@@ -37,6 +37,7 @@
       apt:
         name:
           - ddclient
+          - higan
           - mlocate
           - mpv
           - net-tools
@@ -47,6 +48,7 @@
           - rclone
           - samba
           - vim
+          - zsnes
       become: true
 
     - name: Find out which packages are installed
