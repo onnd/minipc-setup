@@ -12,6 +12,8 @@
 #     - name: other-server
 #       ip: 192.168.0.3
 #       ...
+#   ddclient_login: <domain for ddclient>
+#   ddclient_password: <password for ddclient>
 #   rclone_config: |
 #     <rclone config file here>
 #   users:
@@ -34,6 +36,7 @@
     - name: Make sure all required applications are installed
       apt:
         name:
+          - ddclient
           - mlocate
           - mpv
           - net-tools
@@ -136,6 +139,23 @@
         content: "{{ rclone_config }}"
         dest: "/home/{{ ansible_user_id }}/.config/rclone/rclone.conf"
         mode: 0600
+
+    - name: Ensure ddclient is configured
+      template:
+        src: ddclient.conf.j2
+        dest: /etc/ddclient.conf
+        owner: root
+        group: root
+        mode: 0600
+      become: true
+      register: ddclient_config_update
+
+    - name: Restart ddclient
+      service:
+        name: ddclient
+        state: restarted
+      when: ddclient_config_update.changed
+      become: true
 
     - name: Make sure Program directory exists
       file:
