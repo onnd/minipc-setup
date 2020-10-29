@@ -44,6 +44,7 @@
         name:
           - ddclient
           - higan
+          - lm-sensors
           - mlocate
           - mpv
           - net-tools
