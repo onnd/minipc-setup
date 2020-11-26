@@ -54,6 +54,7 @@
           - python3-psutil
           - rclone
           - samba
+          - sysfsutils
           - vim
           - zsnes
       become: true
@@ -204,6 +205,11 @@
       loop:
         - src: smbusers
           dest: /etc/samba/smbusers
+          mode: 0644
+          owner: root
+          group: root
+        - src: 11-monitor.conf
+          dest: /usr/share/X11/xorg.conf.d/11-monitor.conf
           mode: 0644
           owner: root
           group: root
