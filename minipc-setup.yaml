@@ -24,6 +24,7 @@
 #     - name: bob
 #       gecos: "Bob,,,"
 #       groups: ""
+#   autologin: bob  # non-manatory variable
 #
 # Run the playbook like this:
 # ansible-playbook minipc-setup.yaml -e target=<hostname> -K
@@ -127,6 +128,16 @@
         label: "{{ item.item.name }}"
       when: item.failed
       become: true
+
+    - name: Make sure autologin is enabled if requested
+      ini_file:
+        path: /etc/gdm3/custom.conf
+        section: daemon
+        option: AutomaticLogin
+        value: "{{ autologin }}"
+        create: no
+      become: true
+      when: autologin is defined
 
     - name: Make sure gnome is configured for all users
       dconf:
