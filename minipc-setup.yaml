@@ -40,6 +40,18 @@
         upgrade: full
       become: true
 
+    - name: Ensure all apt repositories are in place
+      apt_repository:
+        repo: ppa:nicotine-team/stable
+        state: present
+      become: true
+
+    - name: Make sure all apt keys are in place
+      apt_key:
+        keyserver: keyserver.ubuntu.com
+        id: 6CEB6050A30E5769 #Nicotine
+      become: true
+
     - name: Make sure all required applications are installed
       apt:
         name:
@@ -49,6 +61,7 @@
           - mlocate
           - mpv
           - net-tools
+          - nicotine
           # Needed by package_facts Ansible module
           - python3-apt
           # Needed by dconf Ansible module
