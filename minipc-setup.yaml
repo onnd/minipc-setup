@@ -56,7 +56,11 @@
       apt:
         name:
           - ddclient
+          - firefox
           - higan
+          # For hardware acceleration in browsers
+          - intel-gpu-tools
+          - intel-media-va-driver-non-free
           - lm-sensors
           - mlocate
           - mpv
@@ -69,6 +73,8 @@
           - rclone
           - samba
           - sysfsutils
+            # VA-API HW acceleration info
+          - vainfo
           - vim
           - zsnes
       become: true
