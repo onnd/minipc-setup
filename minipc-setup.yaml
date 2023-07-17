@@ -57,6 +57,7 @@
         name:
           - ddclient
           - firefox
+          - gthumb
           - higan
           # For hardware acceleration in browsers
           - intel-gpu-tools
