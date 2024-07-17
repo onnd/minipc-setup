@@ -55,6 +55,7 @@
     - name: Make sure all required applications are installed
       apt:
         name:
+          - apache2
           - ddclient
           - firefox
           - gthumb
@@ -192,7 +193,7 @@
       copy:
         content: "{{ rclone_config }}"
         dest: "/home/{{ ansible_user_id }}/.config/rclone/rclone.conf"
-        mode: 0600
+        mode: "0600"
 
     - name: Ensure ddclient is configured
       template:
@@ -200,7 +201,7 @@
         dest: /etc/ddclient.conf
         owner: root
         group: root
-        mode: 0600
+        mode: "0600"
       become: true
       register: ddclient_config_update
 
@@ -214,7 +215,7 @@
     - name: Make sure Program directory exists
       file:
         path: "/home/{{ ansible_user_id }}/Program"
-        mode: 0755
+        mode: "0755"
         state: directory
 
     - name: Make sure user owned files are copied in place
@@ -227,6 +228,20 @@
           dest: "/home/{{ ansible_user_id }}/Program/backup-rclone.sh"
           mode: "0755"
 
+    - name: Make sure system directories exist
+      file:
+        path: "{{ item.path }}"
+        mode: "0755"
+        owner: root
+        group: root
+        state: directory
+      become: true
+      loop:
+        - path: /etc/systemd/system/plocate-updatedb.timer.d
+        - path: /etc/systemd/system/fwupd-refresh.timer.d
+        - path: /etc/systemd/system/man-db.timer.d
+        - path: /etc/systemd/system/apt-daily.timer.d
+
     - name: Make sure system files are copied in place
       copy:
         src: "{{ item.src }}"
@@ -236,12 +251,32 @@
       loop:
         - src: smbusers
           dest: /etc/samba/smbusers
-          mode: 0644
+          mode: "0644"
           owner: root
           group: root
         - src: 11-monitor.conf
           dest: /usr/share/X11/xorg.conf.d/11-monitor.conf
-          mode: 0644
+          mode: "0644"
+          owner: root
+          group: root
+        - src: plocate-updatedb.timer.d-override.conf
+          dest: /etc/systemd/system/plocate-updatedb.timer.d/override.conf
+          mode: "0644"
+          owner: root
+          group: root
+        - src: fwupd-refresh.timer.d-override.conf
+          dest: /etc/systemd/system/fwupd-refresh.timer.d/override.conf
+          mode: "0644"
+          owner: root
+          group: root
+        - src: man-db.timer.d-override.conf
+          dest: /etc/systemd/system/man-db.timer.d/override.conf
+          mode: "0644"
+          owner: root
+          group: root
+        - src: apt-daily.timer.d-override.conf
+          dest: /etc/systemd/system/apt-daily.timer.d/override.conf
+          mode: "0644"
           owner: root
           group: root
 
@@ -313,5 +348,18 @@
           option: "read only"
           value: "yes"
         - section: "julmusik"
+          option: "guest ok"
+          value: "yes"
+        # signe music
+        - section: "musik-signe"
+          option: "comment"
+          value: "NUC public share for Signes music"
+        - section: "musik-signe"
+          option: "path"
+          value: "/home/anton/Musik-Signe"
+        - section: "musik-signe"
+          option: "read only"
+          value: "yes"
+        - section: "musik-signe"
           option: "guest ok"
           value: "yes"
