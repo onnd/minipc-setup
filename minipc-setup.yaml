@@ -227,6 +227,9 @@
         - src: backup-rclone.sh
           dest: "/home/{{ ansible_user_id }}/Program/backup-rclone.sh"
           mode: "0755"
+        - src: bash_profile
+          dest: "/home/{{ ansible_user_id }}/.bash_profile"
+          mode: "0644"
 
     - name: Make sure system directories exist
       file:
