@@ -15,8 +15,8 @@
 
 YESTERDAY=$(date -d yesterday "+%Y-%m-%d")
 LOCAL_CURRENT_DIR="/home/anton/Backups/current"
-REMOTE="secret"
+REMOTE="proton"
 REMOTE_CURRENT_DIR="backups/current"
 REMOTE_BACKUP_DIR="backups/$YESTERDAY"
 
-/usr/bin/rclone -v sync $LOCAL_CURRENT_DIR $REMOTE:$REMOTE_CURRENT_DIR --backup-dir $REMOTE:$REMOTE_BACKUP_DIR
+/usr/bin/rclone -v sync $LOCAL_CURRENT_DIR $REMOTE:$REMOTE_CURRENT_DIR --backup-dir $REMOTE:$REMOTE_BACKUP_DIR --protondrive-replace-existing-draft=true

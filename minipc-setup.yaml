@@ -59,12 +59,12 @@
           - ddclient
           - firefox
           - gthumb
-          - higan
+          # - higan
           # For hardware acceleration in browsers
           - intel-gpu-tools
           - intel-media-va-driver-non-free
           - lm-sensors
-          - mlocate
+          # - mlocate
           - mpv
           - net-tools
           - nicotine
@@ -78,7 +78,7 @@
             # VA-API HW acceleration info
           - vainfo
           - vim
-          - zsnes
+          # - zsnes
       become: true
 
     - name: Find out which packages are installed
